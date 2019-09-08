@@ -1,1 +1,7 @@
 * Python implementation of ten-armed testbed from Sutton & Barto book
+
+** How to use
+
+   1. Create python environment
+   2. In that environment run /pip install -r requirements.txt/
+   3. Run the script
