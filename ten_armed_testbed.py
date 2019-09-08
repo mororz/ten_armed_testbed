@@ -2,12 +2,11 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-from typing import List
 from collections import defaultdict
 
 
 class Bandit:
-    def __init__(self, k: int):
+    def __init__(self, k):
         self.__k = k
 
         self.__values = np.random.randn(k)
@@ -25,7 +24,7 @@ class Bandit:
     def reset_values(self):
         self.__values = np.random.randn(self.__k)
 
-    def get_reward(self, arm: int):
+    def get_reward(self, arm):
         reward = np.random.normal(self.__values[arm])
 
         return reward
@@ -44,77 +43,75 @@ class Bandit:
         plt.show()
 
 
-def greedy(initial_value: float):
-    def inner(bandit: Bandit,
-              n_steps: int = 1000) -> List[float]:
+def sample_average_method(choice_func, initial_value, bandit, n_steps):
+    n_arms = bandit.get_n_arms()
+    Q = [initial_value] * n_arms
+    N = [0] * n_arms
+    rewards = []
 
-        n_arms = bandit.get_n_arms()
-        Q = [initial_value] * n_arms
-        N = [0] * n_arms
-        rewards = []
+    for t in range(n_steps):
+        A = choice_func(Q, N, t)
+        R = bandit.get_reward(A)
+        N[A] += 1
+        Q[A] = Q[A] + (R - Q[A]) / N[A]
 
-        for _ in range(n_steps):
+        rewards.append(R)
+    return rewards
+
+
+def greedy_choice(Q, N, t):
+    return np.argmax(Q)
+
+
+def epsilon_greedy_choice(epsilon):
+    def inner(Q, N, t):
+        coin = np.random.random()
+        if coin < epsilon:
+            n_arms = len(Q)
+            A = np.random.randint(n_arms)
+        else:
             A = np.argmax(Q)
-            R = bandit.get_reward(A)
-            N[A] += 1
-            Q[A] = Q[A] + (R - Q[A]) / N[A]
 
-            rewards.append(R)
-        return rewards
+        return A
 
     return inner
 
 
-def epsilon_greedy(initial_value: float, epsilon: float):
-    def inner(bandit: Bandit,
-              n_steps: int = 1000) -> List[float]:
-
-        n_arms = bandit.get_n_arms()
-        Q = [initial_value] * n_arms
-        N = [0] * n_arms
-        rewards = []
-
-        for _ in range(n_steps):
-            coin = np.random.random()
-            if coin < epsilon:
-                A = np.random.randint(n_arms)
-            else:
-                A = np.argmax(Q)
-            R = bandit.get_reward(A)
-            N[A] += 1
-            Q[A] = Q[A] + (R - Q[A]) / N[A]
-
-            rewards.append(R)
-        return rewards
+def ucb_choice(c):
+    def inner(Q, N, t):
+        return np.argmax(Q + c * np.sqrt(np.log(t) / N))
 
     return inner
 
 
-def ucb(initial_value: float, c: float):
-    def inner(bandit: Bandit,
-              n_steps: int = 1000) -> List[float]:
-
-        n_arms = bandit.get_n_arms()
-        Q = [initial_value] * n_arms
-        N = [0] * n_arms
-        rewards = []
-
-        for t in range(n_steps):
-            A = np.argmax(Q + c * np.sqrt(np.log(t) / N))
-            R = bandit.get_reward(A)
-            N[A] += 1
-            Q[A] = Q[A] + (R - Q[A]) / N[A]
-
-            rewards.append(R)
-        return rewards
+def greedy(initial_value):
+    def inner(bandit, n_steps):
+        return sample_average_method(greedy_choice, initial_value,
+                                     bandit, n_steps)
 
     return inner
 
 
-def run_experiment(methods: dict,
-                   n_arms: int = 10,
-                   n_steps: int = 1000,
-                   n_runs: int = 2000) -> None:
+def epsilon_greedy(initial_value, epsilon):
+    def inner(bandit, n_steps):
+        return sample_average_method(epsilon_greedy_choice(epsilon),
+                                     initial_value, bandit, n_steps)
+
+    return inner
+
+
+def ucb(initial_value, c):
+    def inner(bandit, n_steps):
+        return sample_average_method(ucb_choice(c),
+                                     initial_value, bandit, n_steps)
+
+    return inner
+
+
+def run_experiment(methods,
+                   n_arms=10,
+                   n_steps=1000,
+                   n_runs=2000):
 
     rewards = defaultdict(list)
 
