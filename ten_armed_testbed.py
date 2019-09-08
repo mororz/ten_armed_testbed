@@ -90,6 +90,27 @@ def epsilon_greedy(initial_value: float, epsilon: float):
     return inner
 
 
+def ucb(initial_value: float, c: float):
+    def inner(bandit: Bandit,
+              n_steps: int = 1000) -> List[float]:
+
+        n_arms = bandit.get_n_arms()
+        Q = [initial_value] * n_arms
+        N = [0] * n_arms
+        rewards = []
+
+        for t in range(n_steps):
+            A = np.argmax(Q + c * np.sqrt(np.log(t) / N))
+            R = bandit.get_reward(A)
+            N[A] += 1
+            Q[A] = Q[A] + (R - Q[A]) / N[A]
+
+            rewards.append(R)
+        return rewards
+
+    return inner
+
+
 def run_experiment(methods: dict,
                    n_arms: int = 10,
                    n_steps: int = 1000,
@@ -120,7 +141,7 @@ def run_experiment(methods: dict,
 
 
 if __name__ == '__main__':
-    algos = {'greedy': [], 'epsilon_greedy': []}
+    algos = {'greedy': [], 'epsilon_greedy': [], 'ucb': []}
     enough = True
 
     n_arms = 10
@@ -141,6 +162,7 @@ if __name__ == '__main__':
         print("Choose number of algorithm to add to analysis:")
         print("1. greedy")
         print("2. epsilon-greedy")
+        print("3. UCB")
         print()
 
         choice = input("Number of algorithm: ")
@@ -153,9 +175,16 @@ if __name__ == '__main__':
             init = input("Choose initial value for "
                          "epsilon greedy algorithm (float): ")
             epsilon = input("Choose epsilon for "
-                            "epsilon greedy algprithm (float): ")
+                            "epsilon greedy algorithm (float): ")
 
             algos['epsilon_greedy'].append((float(init), float(epsilon)))
+        elif choice == '3':
+            init = input("Choose initial value for "
+                         "UCB algorithm (float): ")
+            epsilon = input("Choose c for "
+                            "UCB algorithm (float): ")
+
+            algos['ucb'].append((float(init), float(epsilon)))
 
         print()
         proceed = input("Add more algos for analysis? [y/n]: ")
