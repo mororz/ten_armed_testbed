@@ -25,7 +25,7 @@ class Bandit:
     def reset_values(self):
         self.__values = np.random.randn(self.__k)
 
-    def get_reward(self, arm):
+    def get_reward(self, arm: int):
         reward = np.random.normal(self.__values[arm])
 
         return reward
@@ -44,7 +44,7 @@ class Bandit:
         plt.show()
 
 
-def greedy(initial_value: float) -> List[float]:
+def greedy(initial_value: float):
     def inner(bandit: Bandit,
               n_steps: int = 1000) -> List[float]:
 
@@ -65,7 +65,7 @@ def greedy(initial_value: float) -> List[float]:
     return inner
 
 
-def epsilon_greedy(initial_value: float, epsilon: float) -> List[float]:
+def epsilon_greedy(initial_value: float, epsilon: float):
     def inner(bandit: Bandit,
               n_steps: int = 1000) -> List[float]:
 
