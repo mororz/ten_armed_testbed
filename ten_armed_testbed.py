@@ -3,6 +3,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from collections import defaultdict
+from scipy.special import softmax
 
 
 class Bandit:
@@ -108,6 +109,31 @@ def ucb(initial_value, c):
     return inner
 
 
+def gradient(initial_value, alpha):
+    def inner(bandit, n_steps):
+        n_arms = bandit.get_n_arms()
+        Q = [initial_value] * n_arms
+        H = [initial_value] * n_arms
+        probs = softmax(H)
+        N = [0] * n_arms
+        rewards = []
+
+        for t in range(n_steps):
+            A = np.argmax(probs)
+            R = bandit.get_reward(A)
+            N[A] += 1
+            Q[A] = Q[A] + (R - Q[A]) / N[A]
+            for i, _ in enumerate(H):
+                H[i] = H[i] - alpha * (R - Q[i]) * probs[i]
+            H[A] = H[A] + alpha * (R - Q[A]) * (1 - probs[A])
+            probs = softmax(H)
+
+            rewards.append(R)
+        return rewards
+
+    return inner
+
+
 def run_experiment(methods,
                    n_arms=10,
                    n_steps=1000,
@@ -138,7 +164,7 @@ def run_experiment(methods,
 
 
 if __name__ == '__main__':
-    algos = {'greedy': [], 'epsilon_greedy': [], 'ucb': []}
+    algos = {'greedy': [], 'epsilon_greedy': [], 'ucb': [], 'gradient': []}
     enough = True
 
     n_arms = 10
@@ -160,6 +186,7 @@ if __name__ == '__main__':
         print("1. greedy")
         print("2. epsilon-greedy")
         print("3. UCB")
+        print("4. Gradient bandit")
         print()
 
         choice = input("Number of algorithm: ")
@@ -182,6 +209,13 @@ if __name__ == '__main__':
                             "UCB algorithm (float): ")
 
             algos['ucb'].append((float(init), float(epsilon)))
+        elif choice == '4':
+            init = input("Choose initial value for "
+                         "gradient algorithm (float): ")
+            alpha = input("Choose alpha for "
+                          "gradient algorithm (float): ")
+
+            algos['gradient'].append((float(init), float(alpha)))
 
         print()
         proceed = input("Add more algos for analysis? [y/n]: ")
